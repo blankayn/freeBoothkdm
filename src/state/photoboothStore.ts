@@ -30,6 +30,8 @@ export interface BoothSettings {
   /** Mirror the front camera so the preview behaves like a real mirror. */
   mirrorFrontCamera: boolean;
   countdownSeconds: number;
+  /** 0.45 = phone-like wide (small face), 1 = tight cover. Matches CAMERA_ZOOM */
+  cameraZoom: number;
 }
 
 export interface CameraSlice {
@@ -129,6 +131,7 @@ export const DEFAULT_SETTINGS: BoothSettings = {
   faceTracking: false,
   mirrorFrontCamera: true,
   countdownSeconds: 3,
+  cameraZoom: 0.5,
 };
 
 export const usePhotobooth = create<PhotoboothStore>((set, get) => ({

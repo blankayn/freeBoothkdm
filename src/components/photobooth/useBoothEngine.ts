@@ -101,6 +101,7 @@ export function useBoothEngine(active: boolean): BoothHandle {
       handTracking: settings.handTracking,
       faceTracking: settings.faceTracking,
       showChrome: status === 'READY',
+      cameraZoom: settings.cameraZoom,
     });
   }, [
     filter,
@@ -110,6 +111,7 @@ export function useBoothEngine(active: boolean): BoothHandle {
     settings.mirrorFrontCamera,
     settings.handTracking,
     settings.faceTracking,
+    settings.cameraZoom,
     status,
   ]);
 

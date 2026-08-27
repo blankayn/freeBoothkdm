@@ -1,4 +1,4 @@
-import { Sheet, Toggle, Segmented } from '../ui/Primitives';
+import { Sheet, Slider, Toggle, Segmented } from '../ui/Primitives';
 import type { BoothSettings } from '../../state/photoboothStore';
 import { GESTURE_HINTS } from '../../lib/mediapipe/GestureManager';
 
@@ -48,6 +48,28 @@ export function SettingsSheet({
             checked={settings.mirrorFrontCamera}
             onChange={(v) => onChange({ mirrorFrontCamera: v })}
           />
+          <div style={{ marginTop: 16 }}>
+            <Slider
+              label="Distance"
+              tone="dark"
+              value={settings.cameraZoom}
+              min={0.4}
+              max={1}
+              step={0.05}
+              display={
+                settings.cameraZoom <= 0.5
+                  ? 'Wide • phone'
+                  : settings.cameraZoom <= 0.7
+                    ? 'Natural • classic'
+                    : 'Tight'
+              }
+              onChange={(v) => onChange({ cameraZoom: Math.round(v * 20) / 20 })}
+            />
+            <p style={{ fontSize: '0.74rem', color: 'var(--on-dark-soft)', marginTop: 6, lineHeight: 1.4 }}>
+              0.45 = phone at arm’s length (shoulders visible). 0.65 = classic 2ft booth. 1.0 = tight headshot. Standard
+              strip is 4:5 (1080×1350) — webcam is 16:9, so wide adds blurred bars top/bottom to match phone framing.
+            </p>
+          </div>
         </section>
 
         <section>

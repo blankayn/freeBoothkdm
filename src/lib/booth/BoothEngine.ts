@@ -1,11 +1,12 @@
 import type { FilterId } from '../../types/filters';
 import type { StickerLayer } from '../../types/stickers';
-import { FRAME_HEIGHT, FRAME_WIDTH } from '../../types/photobooth';
+import { CAMERA_ZOOM, FRAME_HEIGHT, FRAME_WIDTH } from '../../types/photobooth';
 import { CameraManager } from '../camera/CameraManager';
-import { FilterEngine, coverCrop } from '../filters/FilterEngine';
+import { FilterEngine, zoomCrop } from '../filters/FilterEngine';
 import type { CoverCrop } from '../filters/FilterEngine';
 import { CanvasFilterRenderer } from '../filters/CanvasFilterRenderer';
 import type { FrameRenderer } from '../filters/FrameRenderer';
+import { ZoomStage } from './ZoomStage';
 import { ParticleSystem } from '../effects/ParticleSystem';
 import { HandTracker } from '../mediapipe/HandTracker';
 import type { HandFrame } from '../mediapipe/HandTracker';
@@ -27,6 +28,7 @@ export interface BoothConfig {
   handTracking: boolean;
   faceTracking: boolean;
   showChrome: boolean;
+  cameraZoom: number;
 }
 
 export interface BoothCallbacks {
@@ -66,6 +68,7 @@ export class BoothEngine {
   readonly faces = new FaceTracker();
 
   private renderer: FrameRenderer | null = null;
+  private readonly zoomStage = new ZoomStage();
   private interactions: HandInteractionManager;
 
   private canvas: HTMLCanvasElement | null = null;
@@ -91,6 +94,7 @@ export class BoothEngine {
     handTracking: false,
     faceTracking: false,
     showChrome: true,
+    cameraZoom: CAMERA_ZOOM,
   };
   private callbacks: BoothCallbacks = {};
 
@@ -232,9 +236,10 @@ export class BoothEngine {
     const video = this.camera.video;
     if (video.readyState < 2 || video.videoWidth === 0) return;
 
-    const crop = coverCrop(
+    const crop = zoomCrop(
       video.videoWidth / video.videoHeight,
       this.canvas.width / this.canvas.height,
+      this.config.cameraZoom,
     );
     const mirror = this.camera.shouldMirror && this.config.mirrorFrontCamera;
 
@@ -347,7 +352,19 @@ export class BoothEngine {
       renderer.setRadiusScale(1);
     }
 
-    const drew = renderer.render(video, time, video.videoWidth, video.videoHeight);
+    // Pull the subject back before the filter stack sees it, so the preview and
+    // the exported frame zoom identically and no renderer needs to know about it.
+    const zoomed = this.zoomStage.compose(
+      video,
+      video.videoWidth,
+      video.videoHeight,
+      width,
+      height,
+      CAMERA_ZOOM,
+    );
+    const drew = zoomed
+      ? renderer.render(zoomed, time, zoomed.width, zoomed.height)
+      : renderer.render(video, time, video.videoWidth, video.videoHeight);
 
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.globalAlpha = 1;
@@ -463,7 +480,11 @@ export class BoothEngine {
     const previewHeight = rawPreviewHeight < 10 ? 900 : rawPreviewHeight;
 
     const mirror = this.camera.shouldMirror && this.config.mirrorFrontCamera;
-    const crop = coverCrop(video.videoWidth / video.videoHeight, FRAME_WIDTH / FRAME_HEIGHT);
+    const crop = zoomCrop(
+      video.videoWidth / video.videoHeight,
+      FRAME_WIDTH / FRAME_HEIGHT,
+      this.config.cameraZoom,
+    );
     const now = performance.now();
 
     renderer.resize(FRAME_WIDTH, FRAME_HEIGHT);
@@ -510,6 +531,7 @@ export class BoothEngine {
       this.onVisibilityChange = null;
     }
     this.renderer?.destroy();
+    this.zoomStage.destroy();
     this.renderer = null;
     this.hands.destroy();
     this.faces.destroy();

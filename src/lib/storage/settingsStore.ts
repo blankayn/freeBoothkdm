@@ -11,6 +11,7 @@ export interface StoredSettings {
   faceTracking?: boolean;
   mirrorFrontCamera?: boolean;
   countdownSeconds?: number;
+  cameraZoom?: number;
 }
 
 function safeStorage(): Storage | null {
@@ -43,6 +44,9 @@ export function loadSettings(): StoredSettings {
     if (typeof p.mirrorFrontCamera === 'boolean') out.mirrorFrontCamera = p.mirrorFrontCamera;
     if (typeof p.countdownSeconds === 'number') {
       out.countdownSeconds = Math.min(10, Math.max(0, Math.round(p.countdownSeconds)));
+    }
+    if (typeof p.cameraZoom === 'number' && isFinite(p.cameraZoom)) {
+      out.cameraZoom = Math.min(1, Math.max(0.4, p.cameraZoom));
     }
     return out;
   } catch {
