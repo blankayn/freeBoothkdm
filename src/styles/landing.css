@@ -7,7 +7,7 @@
   padding:
     calc(var(--safe-top) + 18px) calc(var(--safe-right) + 22px)
     calc(var(--safe-bottom) + 22px) calc(var(--safe-left) + 22px);
-  overflow: hidden;
+  overflow: visible;
 }
 
 /* A whisper of texture so the flat paper does not read as unfinished. */
@@ -173,12 +173,13 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: min(480px, 96vw);
-  height: 340px;
+  width: min(520px, 96vw);
+  height: 380px;
   flex-shrink: 0;
   animation: rise-in var(--t-slow) var(--ease) both;
   /* no card — let the canvas blend into --paper via alpha */
   pointer-events: auto;
+  overflow: visible;
 }
 
 .camera3d {
@@ -254,10 +255,11 @@
 
 @media (min-width: 900px) {
   .landing__camera {
-    width: 460px;
-    height: 420px;
+    width: 520px;
+    height: 440px;
     /* pull left so it bleeds into the grain, blending */
-    margin-left: -12px;
+    margin-left: -18px;
+    margin-right: -12px;
   }
 }
 
