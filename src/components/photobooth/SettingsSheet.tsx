@@ -53,21 +53,23 @@ export function SettingsSheet({
               label="Distance"
               tone="dark"
               value={settings.cameraZoom}
-              min={0.4}
+              min={0.3}
               max={1}
               step={0.05}
               display={
-                settings.cameraZoom <= 0.5
+                settings.cameraZoom <= 0.45
                   ? 'Wide • phone'
-                  : settings.cameraZoom <= 0.7
+                  : settings.cameraZoom <= 0.65
                     ? 'Natural • classic'
                     : 'Tight'
               }
               onChange={(v) => onChange({ cameraZoom: Math.round(v * 20) / 20 })}
             />
             <p style={{ fontSize: '0.74rem', color: 'var(--on-dark-soft)', marginTop: 6, lineHeight: 1.4 }}>
-              0.45 = phone at arm’s length (shoulders visible). 0.65 = classic 2ft booth. 1.0 = tight headshot. Standard
-              strip is 4:5 (1080×1350) — webcam is 16:9, so wide adds blurred bars top/bottom to match phone framing.
+              Front cam is wide by nature — <strong>0.42</strong> = phone at arm’s length (shoulders + background, like
+              FaceTime). <strong>0.65</strong> = classic 2ft booth (chest up). <strong>1.0</strong> = tight
+              headshot. If it’s too close, drag to <strong>0.35–0.40</strong>. Strip is 4:5 (1080×1350) vs webcam
+              16:9, so wide shows blurred bars top/bottom — that’s the extra room.
             </p>
           </div>
         </section>

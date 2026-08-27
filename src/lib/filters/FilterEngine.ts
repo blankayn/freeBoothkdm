@@ -215,11 +215,26 @@ export class FilterEngine implements FrameRenderer {
     try {
       if (sourceWidth !== this.texWidth || sourceHeight !== this.texHeight) {
         // Allocation only happens when the camera resolution genuinely changes.
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, source as TexImageSource);
+        gl.texImage2D(
+          gl.TEXTURE_2D,
+          0,
+          gl.RGBA,
+          gl.RGBA,
+          gl.UNSIGNED_BYTE,
+          source as TexImageSource,
+        );
         this.texWidth = sourceWidth;
         this.texHeight = sourceHeight;
       } else {
-        gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, gl.RGBA, gl.UNSIGNED_BYTE, source as TexImageSource);
+        gl.texSubImage2D(
+          gl.TEXTURE_2D,
+          0,
+          0,
+          0,
+          gl.RGBA,
+          gl.UNSIGNED_BYTE,
+          source as TexImageSource,
+        );
       }
     } catch {
       // Safari throws if the video has no decoded frame yet. Skip this tick.
@@ -322,7 +337,8 @@ export class FilterEngine implements FrameRenderer {
     this.texture = null;
     this.gl = null;
 
-    if (this.onLost) this.canvas.removeEventListener('webglcontextlost', this.onLost as EventListener);
+    if (this.onLost)
+      this.canvas.removeEventListener('webglcontextlost', this.onLost as EventListener);
     if (this.onRestored) this.canvas.removeEventListener('webglcontextrestored', this.onRestored);
     this.onLost = null;
     this.onRestored = null;
@@ -339,7 +355,8 @@ function compileShader(
   gl.shaderSource(shader, source);
   gl.compileShader(shader);
   if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-    if (import.meta.env.DEV) console.error('[filters] compile failed:', gl.getShaderInfoLog(shader));
+    if (import.meta.env.DEV)
+      console.error('[filters] compile failed:', gl.getShaderInfoLog(shader));
     gl.deleteShader(shader);
     return null;
   }
@@ -367,4 +384,22 @@ export function coverCrop(sourceAspect: number, frameAspect: number): CoverCrop 
   }
   const scaleY = sourceAspect / frameAspect;
   return { offsetX: 0, offsetY: (1 - scaleY) / 2, scaleX: 1, scaleY };
+}
+
+/**
+ * `coverCrop` with a zoom multiplier, in the same normalised source space.
+ *
+ * `zoom < 1` widens the sampled region so the subject sits smaller in the frame.
+ * The region can then reach past the source edges — offsets go negative, scales
+ * go above 1 — which is deliberate: it is what lets a caller compositing the
+ * frame (`ZoomStage`) letterbox the overflow, and it keeps this crop usable as
+ * the landmark mapping for attached stickers, which must follow the subject into
+ * the padded area rather than clamp at the rim.
+ */
+export function zoomCrop(sourceAspect: number, frameAspect: number, zoom: number): CoverCrop {
+  const base = coverCrop(sourceAspect, frameAspect);
+  if (!isFinite(zoom) || zoom <= 0 || zoom === 1) return base;
+  const scaleX = base.scaleX / zoom;
+  const scaleY = base.scaleY / zoom;
+  return { offsetX: (1 - scaleX) / 2, offsetY: (1 - scaleY) / 2, scaleX, scaleY };
 }

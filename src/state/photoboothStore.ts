@@ -131,7 +131,7 @@ export const DEFAULT_SETTINGS: BoothSettings = {
   faceTracking: false,
   mirrorFrontCamera: true,
   countdownSeconds: 3,
-  cameraZoom: 0.5,
+  cameraZoom: 0.42,
 };
 
 export const usePhotobooth = create<PhotoboothStore>((set, get) => ({

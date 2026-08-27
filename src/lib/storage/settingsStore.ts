@@ -46,7 +46,7 @@ export function loadSettings(): StoredSettings {
       out.countdownSeconds = Math.min(10, Math.max(0, Math.round(p.countdownSeconds)));
     }
     if (typeof p.cameraZoom === 'number' && isFinite(p.cameraZoom)) {
-      out.cameraZoom = Math.min(1, Math.max(0.4, p.cameraZoom));
+      out.cameraZoom = Math.min(1, Math.max(0.3, p.cameraZoom));
     }
     return out;
   } catch {
