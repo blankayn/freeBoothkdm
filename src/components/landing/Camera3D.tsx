@@ -29,9 +29,9 @@ export function Camera3D() {
     // Scene
     const scene = new THREE.Scene();
 
-    // Camera — pulled back and slightly lower so full body + lens fits without clipping
+    // Camera — zoomed out for breathing room (was too tight at 5.15)
     const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 100);
-    camera.position.set(0, 0.85, 5.15);
+    camera.position.set(0, 0.9, 6.35);
 
     // Lights
     scene.add(new THREE.HemisphereLight(0xffffff, 0x2a2a33, 0.9));
@@ -92,8 +92,8 @@ export function Camera3D() {
     rig.rotation.x = 0.08;
 
     const cameraGroup = new THREE.Group();
-    // Scale down slightly so it never bleeds outside the canvas on any viewport
-    cameraGroup.scale.setScalar(0.88);
+    // Smaller so it breathes inside the paper - was 0.88 still tight
+    cameraGroup.scale.setScalar(0.74);
     rig.add(cameraGroup);
 
     // Materials
