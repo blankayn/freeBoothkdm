@@ -1,8 +1,10 @@
-import { useState } from 'react';
+import { lazy, Suspense, useState } from 'react';
 import { Button, Sheet } from '../ui/Primitives';
 import { Logo, IconSparkle, IconHand, IconSticker, IconDownload } from '../ui/Icons';
 import { BUILT_IN_STICKERS } from '../../lib/stickers/stickerLibrary';
 import { GESTURE_HINTS } from '../../lib/mediapipe/GestureManager';
+
+const Camera3D = lazy(() => import('./Camera3D').then((m) => ({ default: m.Camera3D })));
 
 interface LandingProps {
   onOpen: () => void;
@@ -63,7 +65,16 @@ export function Landing({ onOpen, cameraSupported }: LandingProps) {
           )}
         </section>
 
-        <section className="landing__preview" aria-label="Example photo strip">
+        <section className="landing__preview" aria-label="Interactive 3D camera and example photo strip">
+          <Suspense
+            fallback={
+              <div className="camera3d camera3d--loading" aria-hidden>
+                <div className="camera3d__spinner" />
+              </div>
+            }
+          >
+            <Camera3D />
+          </Suspense>
           <StripShowcase />
         </section>
       </div>

@@ -33,6 +33,7 @@ export default defineConfig({
           // so the booth boots fast and only pays for tracking when it is switched on.
           vision: ['@mediapipe/tasks-vision'],
           react: ['react', 'react-dom', 'zustand'],
+          three: ['three'],
         },
       },
     },
