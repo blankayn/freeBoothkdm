@@ -21,17 +21,17 @@ export const FRAME_ASPECT = FRAME_WIDTH / FRAME_HEIGHT;
 
 /**
  * How much of the frame the camera image fills. 1 is `object-fit: cover` — the
- * old behaviour, subject cropped tight. Below 1 pulls the subject back: 0.42 sits
- * the camera image at 42% of the frame height — phone at arm’s length, shoulders
- * visible, like FaceTime. 0.65 is classic 2ft booth (chest up).
+ * old behaviour, subject cropped tight. Below 1 pulls the subject back: 0.75 sits
+ * the camera image at 75% of the frame height — natural phone distance, head +
+ * shoulders, 25% blurred bars top/bottom. 0.42 was phone-wide but left 58%
+ * blurred, making the inset look tiny (your screenshot).
  *
  * There is no zooming *out* past the sensor. A webcam is landscape and this
  * frame is 4:5, so the vertical field of view is already fully spent at 1x;
  * anything under 1 buys distance by leaving a gap above and below, which
- * `ZoomStage` fills with a blurred blow-up of the same frame. That gap is
- * exactly `1 - CAMERA_ZOOM` of the frame height, so 0.42 leaves 58% blurred.
+ * `ZoomStage` fills with a blurred blow-up. That gap is `1 - CAMERA_ZOOM`.
  */
-export const CAMERA_ZOOM = 0.42;
+export const CAMERA_ZOOM = 0.75;
 
 export interface CapturedPhoto {
   id: string;

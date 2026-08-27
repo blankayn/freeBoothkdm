@@ -53,23 +53,24 @@ export function SettingsSheet({
               label="Distance"
               tone="dark"
               value={settings.cameraZoom}
-              min={0.3}
+              min={0.5}
               max={1}
               step={0.05}
               display={
-                settings.cameraZoom <= 0.45
-                  ? 'Wide • phone'
-                  : settings.cameraZoom <= 0.65
-                    ? 'Natural • classic'
+                settings.cameraZoom <= 0.65
+                  ? 'Wide'
+                  : settings.cameraZoom <= 0.85
+                    ? 'Natural'
                     : 'Tight'
               }
               onChange={(v) => onChange({ cameraZoom: Math.round(v * 20) / 20 })}
             />
             <p style={{ fontSize: '0.74rem', color: 'var(--on-dark-soft)', marginTop: 6, lineHeight: 1.4 }}>
-              Front cam is wide by nature — <strong>0.42</strong> = phone at arm’s length (shoulders + background, like
-              FaceTime). <strong>0.65</strong> = classic 2ft booth (chest up). <strong>1.0</strong> = tight
-              headshot. If it’s too close, drag to <strong>0.35–0.40</strong>. Strip is 4:5 (1080×1350) vs webcam
-              16:9, so wide shows blurred bars top/bottom — that’s the extra room.
+              <strong>0.75</strong> = phone-natural (head + shoulders, 25% blurred bars) — your screenshot at 0.42 was
+              58% bars, so inset looked tiny. <strong>1.0</strong> = tight
+              <em>cover</em> (no bars, face fills). Webcam is 16:9 but strip is 4:5, so 1× already uses all vertical
+              pixels — wide can only shrink + blur, not show more scene. Slide to <strong>0.85–1.0</strong> if still
+              too far.
             </p>
           </div>
         </section>
