@@ -31,6 +31,18 @@ export function Landing({ onOpen, cameraSupported }: LandingProps) {
       </header>
 
       <div className="landing__body">
+        <div className="landing__camera" aria-hidden>
+          <Suspense
+            fallback={
+              <div className="camera3d camera3d--loading" aria-hidden>
+                <div className="camera3d__spinner" />
+              </div>
+            }
+          >
+            <Camera3D />
+          </Suspense>
+        </div>
+
         <section className="landing__copy">
           <p className="landing__eyebrow">
             <span className="landing__dot" aria-hidden />
@@ -65,16 +77,7 @@ export function Landing({ onOpen, cameraSupported }: LandingProps) {
           )}
         </section>
 
-        <section className="landing__preview" aria-label="Interactive 3D camera and example photo strip">
-          <Suspense
-            fallback={
-              <div className="camera3d camera3d--loading" aria-hidden>
-                <div className="camera3d__spinner" />
-              </div>
-            }
-          >
-            <Camera3D />
-          </Suspense>
+        <section className="landing__preview" aria-label="Example photo strip">
           <StripShowcase />
         </section>
       </div>

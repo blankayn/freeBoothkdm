@@ -275,7 +275,6 @@ export function Camera3D() {
     bctx.fillStyle = 'rgba(245,243,239,0.62)';
     bctx.font = '600 18px Inter, sans-serif';
     bctx.letterSpacing = '6px';
-    // @ts-ignore - letterSpacing not in 2d context types in some TS
     bctx.fillText('PHOTOBOOTH  •  35MM', 256, 85);
     const brandTex = new THREE.CanvasTexture(brandCanvas);
     brandTex.colorSpace = THREE.SRGBColorSpace;

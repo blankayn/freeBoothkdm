@@ -178,7 +178,7 @@ export function PhotoStripEditor({ onExport }: { onExport: () => void }) {
         </section>
 
         <aside className="editor__panel">
-          <nav className="editor__tabs" role="tablist" aria-label="Strip options">
+          <div className="editor__tabs" role="tablist" aria-label="Strip options">
             {TABS.map((entry) => (
               <button
                 key={entry.id}
@@ -192,7 +192,7 @@ export function PhotoStripEditor({ onExport }: { onExport: () => void }) {
                 <span>{entry.label}</span>
               </button>
             ))}
-          </nav>
+          </div>
 
           <div className="editor__panel-body">
             {tab === 'layout' ? (

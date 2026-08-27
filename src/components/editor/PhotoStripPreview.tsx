@@ -94,7 +94,9 @@ export function PhotoStripPreview({
     ctx.imageSmoothingQuality = 'high';
     renderStrip(ctx, { photos, style, texts, stickers, date: new Date(createdAt) }, metrics.width);
 
-    if (interactive && selection) drawSelection(ctx, metrics.width, metrics.height);
+    if (interactive && selection) {
+      drawSelectionOutline(ctx, selection, texts, stickers, metrics.width, metrics.height);
+    }
   }, [photos, style, texts, stickers, createdAt, selection, interactive]);
 
   // Coalesce paints into one per frame — sliders fire far faster than 60 Hz.
@@ -137,21 +139,6 @@ export function PhotoStripPreview({
     document.addEventListener('visibilitychange', onVisible);
     return () => document.removeEventListener('visibilitychange', onVisible);
   }, [schedule]);
-
-  function drawSelection(ctx: CanvasRenderingContext2D, width: number, height: number): void {
-    const now = performance.now();
-    if (selection?.kind === 'sticker') {
-      const layer = dataRef.current.stickers.find((s) => s.id === selection.id);
-      if (!layer) return;
-      const box = geometry(layer, width, height, now);
-      outline(ctx, box.cx, box.cy, box.w, box.h, layer.rotation);
-    } else if (selection?.kind === 'text') {
-      const item = dataRef.current.texts.find((t) => t.id === selection.id);
-      if (!item) return;
-      const box = measureTextItem(ctx, item, width, height);
-      outline(ctx, box.cx, box.cy, box.w, box.h, item.rotation);
-    }
-  }
 
   // --- pointer -------------------------------------------------------------
 
@@ -317,6 +304,32 @@ export function PhotoStripPreview({
       />
     </div>
   );
+}
+
+/**
+ * Marching-ants box around whatever is selected. Module-level and fully
+ * parameterised so the paint callback has no hidden dependency on it.
+ */
+function drawSelectionOutline(
+  ctx: CanvasRenderingContext2D,
+  selection: StripSelection,
+  texts: StripTextItem[],
+  stickers: StickerLayer[],
+  width: number,
+  height: number,
+): void {
+  const now = performance.now();
+  if (selection?.kind === 'sticker') {
+    const layer = stickers.find((s) => s.id === selection.id);
+    if (!layer) return;
+    const box = geometry(layer, width, height, now);
+    outline(ctx, box.cx, box.cy, box.w, box.h, layer.rotation);
+  } else if (selection?.kind === 'text') {
+    const item = texts.find((t) => t.id === selection.id);
+    if (!item) return;
+    const box = measureTextItem(ctx, item, width, height);
+    outline(ctx, box.cx, box.cy, box.w, box.h, item.rotation);
+  }
 }
 
 function outline(

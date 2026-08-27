@@ -116,7 +116,7 @@ export function FinalScreen({ onTakeAnother, onBackToEditor }: FinalScreenProps)
           </div>
         ) : (
           <figure className="final__figure">
-            <img src={previewUrl ?? ''} alt="Your finished photo strip" />
+            <img src={previewUrl ?? ''} alt="Your finished strip, ready to download" />
             <figcaption>
               {result.width} × {result.height} PNG
             </figcaption>
