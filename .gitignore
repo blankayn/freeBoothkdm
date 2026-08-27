@@ -1,0 +1,27 @@
+node_modules
+dist
+dist-ssr
+*.local
+.DS_Store
+.vscode/*
+!.vscode/extensions.json
+*.tsbuildinfo
+
+# env & secrets
+.env
+.env.*
+!.env.example
+
+# coverage & reports
+coverage
+playwright-report
+test-results
+.turbo
+.vercel
+.idea
+*.log
+npm-debug.log*
+
+# PWA & build artifacts
+.sourcemaps
+coverage/

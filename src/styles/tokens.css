@@ -1,0 +1,60 @@
+:root {
+  /* Ink & paper. The booth runs dark so the camera is the brightest thing on
+     screen; the landing and editor run light so the strip reads as an object. */
+  --ink: #16151a;
+  --ink-soft: #4a4653;
+  --ink-faint: #8c8796;
+  --paper: #fbf7f2;
+  --paper-2: #f2ece4;
+  --paper-3: #e6ded3;
+
+  --booth: #100f14;
+  --booth-2: #1a181f;
+  --surface: #1e1c25;
+  --surface-2: #292631;
+  --surface-3: #363241;
+  --on-dark: #f6f3ef;
+  --on-dark-soft: #b3adbd;
+
+  --accent: #ff3b6b;
+  --accent-ink: #ffffff;
+  --accent-soft: #ffe3ea;
+  --violet: #8b5cf6;
+  --lime: #c8ff4d;
+  --sky: #5ad2ff;
+  --butter: #ffd166;
+
+  --danger: #e5245b;
+  --ok: #2fb573;
+
+  --r-xs: 8px;
+  --r-sm: 12px;
+  --r-md: 18px;
+  --r-lg: 26px;
+  --r-xl: 34px;
+  --r-full: 999px;
+
+  --shadow-sm: 0 1px 2px rgba(22, 21, 26, 0.08), 0 2px 6px rgba(22, 21, 26, 0.06);
+  --shadow-md: 0 4px 12px rgba(22, 21, 26, 0.1), 0 12px 28px rgba(22, 21, 26, 0.08);
+  --shadow-lg: 0 12px 32px rgba(22, 21, 26, 0.14), 0 32px 64px rgba(22, 21, 26, 0.12);
+  --shadow-pop: 0 8px 24px rgba(255, 59, 107, 0.28);
+
+  /* One easing for everything that moves. Consistency reads as "designed". */
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-back: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --t-fast: 140ms;
+  --t-base: 240ms;
+  --t-slow: 420ms;
+
+  --font-display: 'Bricolage Grotesque', 'Inter', system-ui, -apple-system, sans-serif;
+  --font-ui: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-hand: 'Caveat', 'Bradley Hand', cursive;
+
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+
+  /* Minimum comfortable target. Nothing tappable goes below this. */
+  --tap: 48px;
+}

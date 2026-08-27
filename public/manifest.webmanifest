@@ -1,0 +1,17 @@
+{
+  "name": "Make a Moment — Photobooth",
+  "short_name": "Photobooth",
+  "description": "A browser photobooth. Take four shots, play with live camera effects, add stickers, and download your own strip.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#100F14",
+  "theme_color": "#100F14",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
