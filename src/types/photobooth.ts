@@ -19,6 +19,19 @@ export const FRAME_WIDTH = 1080;
 export const FRAME_HEIGHT = 1350;
 export const FRAME_ASPECT = FRAME_WIDTH / FRAME_HEIGHT;
 
+/**
+ * How much of the frame the camera image fills. 1 is `object-fit: cover` — the
+ * old behaviour, subject cropped tight. Below 1 pulls the subject back: 0.7 sits
+ * the camera image at 70% of the frame height.
+ *
+ * There is no zooming *out* past the sensor. A webcam is landscape and this
+ * frame is 4:5, so the vertical field of view is already fully spent at 1x;
+ * anything under 1 buys distance by leaving a gap above and below, which
+ * `ZoomStage` fills with a blurred blow-up of the same frame. That gap is
+ * exactly `1 - CAMERA_ZOOM` of the frame height, so 0.7 spends 30% of it.
+ */
+export const CAMERA_ZOOM = 0.5;
+
 export interface CapturedPhoto {
   id: string;
   index: number;
@@ -44,7 +57,8 @@ export interface StripSize {
   hint: string;
 }
 
-export type ThemeId = 'midnight' | 'paper' | 'blush' | 'butter' | 'mint' | 'sky' | 'violet' | 'lime' | 'custom';
+export type ThemeId =
+  'midnight' | 'paper' | 'blush' | 'butter' | 'mint' | 'sky' | 'violet' | 'lime' | 'custom';
 
 export interface StripTheme {
   id: ThemeId;
