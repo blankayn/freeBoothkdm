@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { usePhotobooth } from '../../state/photoboothStore';
 import { photoExporter } from '../../lib/export/PhotoExporter';
 import type { ExportResult } from '../../lib/export/PhotoExporter';
+import { STRIP_SIZE_BY_ID } from '../../lib/export/stripLayouts';
 import { useDecodedPhotos } from './useDecodedPhotos';
 import { haptic, playChime } from '../../lib/utils/feedback';
 import { Button, LiveRegion } from '../ui/Primitives';
@@ -16,6 +17,7 @@ export function FinalScreen({ onTakeAnother, onBackToEditor }: FinalScreenProps)
   const status = usePhotobooth((s) => s.status);
   const photos = usePhotobooth((s) => s.photos);
   const style = usePhotobooth((s) => s.stripStyle);
+  const size = usePhotobooth((s) => s.stripSize);
   const texts = usePhotobooth((s) => s.stripTexts);
   const stickers = usePhotobooth((s) => s.stripStickers);
   const settings = usePhotobooth((s) => s.settings);
@@ -42,9 +44,11 @@ export function FinalScreen({ onTakeAnother, onBackToEditor }: FinalScreenProps)
 
     const run = async () => {
       try {
+        const width = STRIP_SIZE_BY_ID[size]?.width ?? 1200;
         const exported = await photoExporter.render({
           photos: images,
           document: { style, texts, stickers, createdAt: Date.now() },
+          width,
         });
         setResult(exported);
         // Revoke previous preview if we re-run (e.g. after EDITING -> EXPORTING).
@@ -63,7 +67,7 @@ export function FinalScreen({ onTakeAnother, onBackToEditor }: FinalScreenProps)
       }
     };
     void run();
-  }, [ready, status, images, style, texts, stickers, settings, pushToast]);
+  }, [ready, status, images, style, texts, stickers, settings, pushToast, size]);
 
   // The preview URL is ours; release it when this screen goes away.
   useEffect(() => {

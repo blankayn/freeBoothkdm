@@ -10,7 +10,7 @@ import { haptic, playPop } from '../../lib/utils/feedback';
 import { useDecodedPhotos } from './useDecodedPhotos';
 import { PhotoStripPreview } from './PhotoStripPreview';
 import type { StripSelection } from './PhotoStripPreview';
-import { LayoutControls, StyleControls } from './StripStyleControls';
+import { LayoutControls, SizeControls, StyleControls } from './StripStyleControls';
 import { TextControls } from './StripTextControls';
 import { StickerPanel } from '../photobooth/StickerPanel';
 import { Button, IconButton, LiveRegion } from '../ui/Primitives';
@@ -39,11 +39,13 @@ const TABS: { id: Tab; label: string; icon: JSX.Element }[] = [
 export function PhotoStripEditor({ onExport }: { onExport: () => void }) {
   const photos = usePhotobooth((s) => s.photos);
   const style = usePhotobooth((s) => s.stripStyle);
+  const size = usePhotobooth((s) => s.stripSize);
   const texts = usePhotobooth((s) => s.stripTexts);
   const stickers = usePhotobooth((s) => s.stripStickers);
   const settings = usePhotobooth((s) => s.settings);
   const setStripStyle = usePhotobooth((s) => s.setStripStyle);
   const setStripLayout = usePhotobooth((s) => s.setStripLayout);
+  const setStripSize = usePhotobooth((s) => s.setStripSize);
   const setStripTexts = usePhotobooth((s) => s.setStripTexts);
   const setStripStickers = usePhotobooth((s) => s.setStripStickers);
   const pushToast = usePhotobooth((s) => s.pushToast);
@@ -196,7 +198,10 @@ export function PhotoStripEditor({ onExport }: { onExport: () => void }) {
 
           <div className="editor__panel-body">
             {tab === 'layout' ? (
-              <LayoutControls layout={style.layout} onChange={setStripLayout} />
+              <>
+                <LayoutControls layout={style.layout} onChange={setStripLayout} />
+                <SizeControls size={size} onChange={setStripSize} />
+              </>
             ) : null}
 
             {tab === 'style' ? <StyleControls style={style} onChange={setStripStyle} /> : null}

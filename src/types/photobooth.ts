@@ -33,6 +33,28 @@ export interface CapturedPhoto {
 
 export type StripLayoutId = 'classic' | 'grid' | 'polaroid' | 'minimal';
 
+export type StripSizeId = 'sm' | 'md' | 'lg' | 'xl';
+
+export interface StripSize {
+  id: StripSizeId;
+  label: string;
+  blurb: string;
+  width: number;
+  /** e.g. "800×3200" - shown in UI */
+  hint: string;
+}
+
+export type ThemeId = 'midnight' | 'paper' | 'blush' | 'butter' | 'mint' | 'sky' | 'violet' | 'lime' | 'custom';
+
+export interface StripTheme {
+  id: ThemeId;
+  label: string;
+  background: string;
+  backgroundAlt: string | null;
+  accent: string;
+  frameColor: string;
+}
+
 export interface StripLayout {
   id: StripLayoutId;
   label: string;

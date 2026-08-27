@@ -10,7 +10,7 @@ export const EXPORT_WIDTH = 1200;
  * the safe side; at this width a cell still maps roughly 1:1 to the 1080px
  * captures, so nothing is upscaled.
  */
-const MAX_EXPORT_HEIGHT = 6000;
+const MAX_EXPORT_HEIGHT = 7000;
 
 export interface ExportInput {
   photos: (HTMLImageElement | null)[];

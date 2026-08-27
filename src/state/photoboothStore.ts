@@ -6,13 +6,14 @@ import type {
   CapturedPhoto,
   PhotoboothState,
   StripLayoutId,
+  StripSizeId,
   StripStyle,
   StripTextItem,
 } from '../types/photobooth';
 import { SHOT_COUNT } from '../types/photobooth';
 import { canTransition } from './machine';
 import { FILTER_BY_ID, nextFilter } from '../lib/filters/filterCatalog';
-import { DEFAULT_STRIP_STYLE } from '../lib/export/stripLayouts';
+import { DEFAULT_STRIP_STYLE, DEFAULT_STRIP_SIZE } from '../lib/export/stripLayouts';
 import { loadSettings, saveSettings } from '../lib/storage/settingsStore';
 
 export interface Toast {
@@ -56,6 +57,7 @@ export interface PhotoboothStore {
   selectedStickerId: string | null;
 
   stripStyle: StripStyle;
+  stripSize: StripSizeId;
   stripTexts: StripTextItem[];
   stripStickers: StickerLayer[];
   selectedStripItemId: string | null;
@@ -84,6 +86,7 @@ export interface PhotoboothStore {
 
   setStripStyle: (patch: Partial<StripStyle>) => void;
   setStripLayout: (id: StripLayoutId) => void;
+  setStripSize: (id: StripSizeId) => void;
   setStripTexts: (next: StripTextItem[]) => void;
   setStripStickers: (next: StickerLayer[]) => void;
   selectStripItem: (id: string | null) => void;
@@ -143,6 +146,7 @@ export const usePhotobooth = create<PhotoboothStore>((set, get) => ({
   selectedStickerId: null,
 
   stripStyle: { ...DEFAULT_STRIP_STYLE },
+  stripSize: DEFAULT_STRIP_SIZE,
   stripTexts: [],
   stripStickers: [],
   selectedStripItemId: null,
@@ -186,6 +190,7 @@ export const usePhotobooth = create<PhotoboothStore>((set, get) => ({
             filter: 'original' as FilterId,
             intensities: defaultIntensities(),
             stripStyle: { ...DEFAULT_STRIP_STYLE },
+            stripSize: DEFAULT_STRIP_SIZE,
           }
         : {}),
     });
@@ -261,6 +266,8 @@ export const usePhotobooth = create<PhotoboothStore>((set, get) => ({
         showLogo: id === 'minimal' ? false : s.stripStyle.showLogo,
       },
     })),
+
+  setStripSize: (id) => set({ stripSize: id }),
 
   setStripTexts: (next) => set({ stripTexts: next }),
   setStripStickers: (next) => set({ stripStickers: next }),
