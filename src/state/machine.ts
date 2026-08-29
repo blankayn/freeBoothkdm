@@ -8,12 +8,17 @@ import { SHOT_COUNT } from '../types/photobooth';
  * live. Impossible transitions are dropped and reported rather than applied.
  */
 export const TRANSITIONS: Record<PhotoboothState, PhotoboothState[]> = {
-  IDLE: ['CAMERA_PERMISSION'],
+  // The chooser is the front door now, but a direct jump stays legal so
+  // "take another" can skip it — the strip is already picked by then.
+  IDLE: ['CHOOSING_STRIP', 'CAMERA_PERMISSION'],
+  CHOOSING_STRIP: ['CAMERA_PERMISSION', 'IDLE'],
   CAMERA_PERMISSION: ['READY', 'IDLE'],
   READY: ['COUNTDOWN', 'REVIEW', 'IDLE'],
   COUNTDOWN: ['CAPTURED', 'READY', 'IDLE'],
   CAPTURED: ['READY', 'REVIEW', 'IDLE'],
-  REVIEW: ['READY', 'EDITING', 'IDLE'],
+  // EXPORTING direct from REVIEW: the strip was designed up front, so the
+  // editor is a detour you take on purpose rather than a toll on the way out.
+  REVIEW: ['READY', 'EDITING', 'EXPORTING', 'IDLE'],
   EDITING: ['EXPORTING', 'REVIEW', 'READY', 'IDLE'],
   EXPORTING: ['COMPLETE', 'EDITING'],
   COMPLETE: ['EDITING', 'READY', 'IDLE'],
@@ -30,11 +35,7 @@ export interface TransitionContext {
  * rejects the transition and explains why, which is far easier to debug than a
  * silent no-op.
  */
-function guard(
-  from: PhotoboothState,
-  to: PhotoboothState,
-  ctx: TransitionContext,
-): string | null {
+function guard(from: PhotoboothState, to: PhotoboothState, ctx: TransitionContext): string | null {
   if (to === 'REVIEW' && ctx.filledCount < SHOT_COUNT) {
     return `REVIEW needs ${SHOT_COUNT} photos, roll has ${ctx.filledCount}`;
   }

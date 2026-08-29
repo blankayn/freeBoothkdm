@@ -3,6 +3,8 @@ import type { StickerLayer } from './stickers';
 
 export type PhotoboothState =
   | 'IDLE'
+  /** Picking the strip template before a single shot is taken. */
+  | 'CHOOSING_STRIP'
   | 'CAMERA_PERMISSION'
   | 'READY'
   | 'COUNTDOWN'
@@ -45,7 +47,7 @@ export interface CapturedPhoto {
   takenAt: number;
 }
 
-export type StripLayoutId = 'classic' | 'grid' | 'polaroid' | 'minimal';
+export type StripLayoutId = 'classic' | 'grid' | 'polaroid' | 'minimal' | 'duo';
 
 export type StripSizeId = 'sm' | 'md' | 'lg' | 'xl';
 
@@ -82,6 +84,8 @@ export interface StripLayout {
   footerScale: number;
   /** Polaroid-style asymmetric padding under each cell. */
   perCellFooter?: number;
+  /** Duo layouts: each cell holds two faces side by side. */
+  cellSlots?: 1 | 2;
 }
 
 export type TextAlign = 'left' | 'center' | 'right';

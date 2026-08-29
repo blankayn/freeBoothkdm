@@ -10,6 +10,11 @@ export interface StripRenderInput {
   texts: StripTextItem[];
   stickers: StickerLayer[];
   date: Date;
+  /**
+   * Duo layout: per-slot partner frames. Index = roll slot; when present the
+   * cell splits vertically — my frame left, partner right.
+   */
+  partnerPhotos?: (CanvasImageSource | null)[] | null;
 }
 
 export interface StripMetrics {
@@ -76,9 +81,11 @@ export function renderStrip(
   input: StripRenderInput,
   width: number,
 ): StripMetrics {
-  const { style, photos, texts, stickers, date } = input;
+  const { style, photos, texts, stickers, date, partnerPhotos } = input;
   const m = measureStrip(style, width);
   const ink = readableInk(style.background);
+  const layout = LAYOUT_BY_ID[style.layout];
+  const duo = layout.cellSlots === 2;
 
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.clearRect(0, 0, m.width, m.height);
@@ -123,17 +130,38 @@ export function renderStrip(
     roundRectPath(ctx, x, y, m.photoW, m.photoH, photoRadius);
     ctx.clip();
 
-    const photo = photos[i];
-    if (photo) {
-      drawCover(ctx, photo, x, y, m.photoW, m.photoH);
+    if (duo) {
+      // Each duo cell is a pair: my frame left, partner right. Either half can
+      // be empty without disturbing the other, so one dropped exchange never
+      // blanks the whole cell.
+      const halfW = m.photoW / 2;
+      const photo = photos[i];
+      if (photo) {
+        drawCover(ctx, photo, x, y, halfW, m.photoH);
+      } else {
+        ctx.fillStyle = m.mounted ? 'rgba(22,21,26,0.08)' : withAlpha(ink, 0.08);
+        ctx.fillRect(x, y, halfW, m.photoH);
+      }
+      const partner = partnerPhotos?.[i] ?? null;
+      if (partner) {
+        drawCover(ctx, partner, x + halfW, y, halfW, m.photoH);
+      } else {
+        ctx.fillStyle = m.mounted ? 'rgba(22,21,26,0.08)' : withAlpha(ink, 0.08);
+        ctx.fillRect(x + halfW, y, halfW, m.photoH);
+      }
     } else {
-      ctx.fillStyle = m.mounted ? 'rgba(22,21,26,0.08)' : withAlpha(ink, 0.08);
-      ctx.fillRect(x, y, m.photoW, m.photoH);
-      ctx.fillStyle = m.mounted ? 'rgba(22,21,26,0.3)' : withAlpha(ink, 0.34);
-      ctx.font = `600 ${m.photoW * 0.06}px "Inter", system-ui, sans-serif`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(`${i + 1}`, x + m.photoW / 2, y + m.photoH / 2);
+      const photo = photos[i];
+      if (photo) {
+        drawCover(ctx, photo, x, y, m.photoW, m.photoH);
+      } else {
+        ctx.fillStyle = m.mounted ? 'rgba(22,21,26,0.08)' : withAlpha(ink, 0.08);
+        ctx.fillRect(x, y, m.photoW, m.photoH);
+        ctx.fillStyle = m.mounted ? 'rgba(22,21,26,0.3)' : withAlpha(ink, 0.34);
+        ctx.font = `600 ${m.photoW * 0.06}px "Inter", system-ui, sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(`${i + 1}`, x + m.photoW / 2, y + m.photoH / 2);
+      }
     }
     ctx.restore();
 

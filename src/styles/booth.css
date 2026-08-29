@@ -17,8 +17,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  padding:
-    calc(var(--safe-top) + 10px) calc(var(--safe-right) + 12px) 8px
+  padding: calc(var(--safe-top) + 10px) calc(var(--safe-right) + 12px) 8px
     calc(var(--safe-left) + 12px);
 }
 
@@ -77,8 +76,10 @@
 .booth__stage {
   flex: 1 1 auto;
   min-height: 0;
-  display: grid;
-  place-items: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
   padding: 4px 12px;
 }
 
@@ -268,8 +269,7 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
-  padding:
-    10px calc(var(--safe-right) + 14px) calc(var(--safe-bottom) + 12px)
+  padding: 10px calc(var(--safe-right) + 14px) calc(var(--safe-bottom) + 12px)
     calc(var(--safe-left) + 14px);
 }
 
@@ -887,4 +887,251 @@
   .booth__frame {
     max-height: 68vh;
   }
+}
+
+/* --- crop guide ---------------------------------------------------------- */
+
+/*
+ * Where the strip cell will trim this frame. Square cells keep only the middle
+ * 80% of the height, so without this you compose against edges that do not
+ * survive the export. Deliberately quiet — it is a hint, not a mask.
+ */
+.booth__guide {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  display: flex;
+}
+
+.booth__guide--y {
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.booth__guide--x {
+  flex-direction: row;
+  justify-content: space-between;
+}
+
+.booth__guide-band {
+  display: block;
+  background: rgba(7, 6, 10, 0.34);
+}
+
+.booth__guide--y .booth__guide-band {
+  width: 100%;
+  height: var(--guide-band);
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.28);
+}
+
+.booth__guide--y .booth__guide-band:last-child {
+  border-bottom: none;
+  border-top: 1px dashed rgba(255, 255, 255, 0.28);
+}
+
+.booth__guide--x .booth__guide-band {
+  height: 100%;
+  width: var(--guide-band);
+  border-right: 1px dashed rgba(255, 255, 255, 0.28);
+}
+
+.booth__guide--x .booth__guide-band:last-child {
+  border-right: none;
+  border-left: 1px dashed rgba(255, 255, 255, 0.28);
+}
+
+/* --- live strip rail ----------------------------------------------------- */
+
+/*
+ * On a phone there is no room beside the frame, so the strip rides over its
+ * right edge instead of stealing width from the camera. It stays tappable
+ * there — that is the retake affordance, not decoration.
+ */
+.booth__rail {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 2;
+  opacity: 0.94;
+}
+
+.booth__stage {
+  position: relative;
+}
+
+.booth-strip {
+  width: 52px;
+}
+
+.booth-strip {
+  display: flex;
+  justify-content: center;
+}
+
+.booth-strip__canvas {
+  display: block;
+  border-radius: 6px;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.06),
+    0 18px 44px rgba(0, 0, 0, 0.5);
+  animation: fade-in var(--t-base) var(--ease);
+}
+
+.booth-strip__canvas.is-tappable {
+  cursor: pointer;
+}
+
+@media (min-width: 900px) {
+  /* Room to sit beside the frame — stop overlapping it. */
+  .booth__rail {
+    position: static;
+    transform: none;
+    opacity: 1;
+    flex: 0 0 auto;
+    height: 100%;
+    display: flex;
+    align-items: center;
+  }
+
+  .booth-strip {
+    width: 122px;
+  }
+}
+
+@media (min-width: 1180px) {
+  .booth-strip {
+    width: 152px;
+  }
+}
+
+/* --- couple booth ---------------------------------------------------------- */
+
+.room-join {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1.25rem;
+  border-radius: 1rem;
+  background: rgba(22, 21, 26, 0.92);
+  border: 1px solid rgba(251, 247, 242, 0.14);
+  max-width: 22rem;
+  margin-top: 1rem;
+}
+
+.room-join__title {
+  font-weight: 700;
+  color: #FBF7F2;
+  margin: 0;
+}
+
+.room-join__code {
+  font-size: 2.4rem;
+  font-weight: 800;
+  letter-spacing: 0.35em;
+  color: #FBF7F2;
+  margin: 0.25rem 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.room-join__hint {
+  color: rgba(251, 247, 242, 0.6);
+  font-size: 0.85rem;
+  margin: 0;
+}
+
+.room-join__row {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.room-join__input {
+  font-size: 1.6rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(251, 247, 242, 0.25);
+  background: rgba(251, 247, 242, 0.06);
+  color: #FBF7F2;
+  width: 100%;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.partner-badge {
+  position: absolute;
+  top: 0.75rem;
+  left: 0.75rem;
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  padding: 0.35rem 0.7rem;
+  border-radius: 999px;
+  background: rgba(16, 15, 20, 0.72);
+  border: 1px solid rgba(251, 247, 242, 0.16);
+  z-index: 5;
+  pointer-events: none;
+}
+
+.partner-badge__room {
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  color: #FBF7F2;
+  font-size: 0.78rem;
+}
+
+.partner-badge__status {
+  font-size: 0.72rem;
+  color: rgba(251, 247, 242, 0.66);
+}
+
+.partner-badge__status--live { color: #7CE7A2; }
+.partner-badge__status--gone { color: #FF6B8A; }
+
+.gesture-hud {
+  position: absolute;
+  transform: translate(-50%, -130%);
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.45rem 0.75rem;
+  border-radius: 999px;
+  background: rgba(16, 15, 20, 0.82);
+  border: 1px solid rgba(251, 247, 242, 0.2);
+  z-index: 6;
+  pointer-events: none;
+}
+
+.gesture-hud__ring {
+  position: relative;
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 50%;
+  border: 2px solid rgba(251, 247, 242, 0.25);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+
+.gesture-hud__fill {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: rgba(255, 59, 107, 0.85);
+  transform-origin: center;
+}
+
+.gesture-hud__text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+}
+
+.gesture-hud__text strong { color: #FBF7F2; font-size: 0.78rem; }
+.gesture-hud__text em { color: rgba(251, 247, 242, 0.6); font-size: 0.68rem; font-style: normal; }
+
+.gesture-hud--fired {
+  border-color: rgba(255, 59, 107, 0.8);
 }

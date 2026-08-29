@@ -9,6 +9,7 @@ import './styles/ui.css';
 import './styles/landing.css';
 import './styles/booth.css';
 import './styles/editor.css';
+import './styles/chooser.css';
 
 // Global safety net: MediaPipe / WebGL promise rejections otherwise vanish.
 if (typeof window !== 'undefined') {

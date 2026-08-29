@@ -1,12 +1,15 @@
 import type { FilterId } from '../../types/filters';
 import type { StickerLayer } from '../../types/stickers';
-import { CAMERA_ZOOM, FRAME_HEIGHT, FRAME_WIDTH } from '../../types/photobooth';
+import type { StripStyle } from '../../types/photobooth';
+import { CAMERA_ZOOM, FRAME_HEIGHT, FRAME_WIDTH, SHOT_COUNT } from '../../types/photobooth';
 import { CameraManager } from '../camera/CameraManager';
 import { FilterEngine, zoomCrop } from '../filters/FilterEngine';
 import type { CoverCrop } from '../filters/FilterEngine';
 import { CanvasFilterRenderer } from '../filters/CanvasFilterRenderer';
 import type { FrameRenderer } from '../filters/FrameRenderer';
 import { ZoomStage } from './ZoomStage';
+import { layoutStripPreview } from './StripPreview';
+import type { StripPreviewLayout } from './StripPreview';
 import { ParticleSystem } from '../effects/ParticleSystem';
 import { HandTracker } from '../mediapipe/HandTracker';
 import type { HandFrame } from '../mediapipe/HandTracker';
@@ -19,6 +22,16 @@ import { resolveAnchor } from '../mediapipe/attachments';
 import { stickerRenderer } from '../stickers/StickerRenderer';
 import { damp } from '../utils/math';
 
+/**
+ * One camera-shaped input to the render loop. `local` is the booth's own
+ * CameraManager; `remote` is the partner's WebRTC stream, decoded by a hidden
+ * <video> owned by CoupleConnection.
+ */
+export interface BoothSource {
+  video: HTMLVideoElement;
+  isLocal: boolean;
+}
+
 export interface BoothConfig {
   filter: FilterId;
   intensity: number;
@@ -29,6 +42,14 @@ export interface BoothConfig {
   faceTracking: boolean;
   showChrome: boolean;
   cameraZoom: number;
+  /** WYSIWYG: render the cam display as the chosen strip layout. */
+  stripStyle: StripStyle | null;
+  /** How many roll slots are already filled — the live cell follows this. */
+  filledCount: number;
+  /** Partner's video; null in solo mode, which renders exactly as before. */
+  remoteVideo: HTMLVideoElement | null;
+  /** Frozen shots for cells behind the live one (object URLs → <img> not needed here; bitmaps). */
+  frozenCells: (CanvasImageSource | null)[];
 }
 
 export interface BoothCallbacks {
@@ -95,6 +116,10 @@ export class BoothEngine {
     faceTracking: false,
     showChrome: true,
     cameraZoom: CAMERA_ZOOM,
+    stripStyle: null,
+    filledCount: 0,
+    remoteVideo: null,
+    frozenCells: [],
   };
   private callbacks: BoothCallbacks = {};
 
@@ -245,8 +270,175 @@ export class BoothEngine {
 
     const { hands, faces, gesture } = this.runTracking(video, now);
     this.runInteractions(hands, gesture, crop, mirror, dt, now);
-    this.renderFrame(video, crop, mirror, now, dt, hands, faces);
+
+    if (this.config.stripStyle) {
+      this.renderStripPreviewFrame(video, hands, faces, crop, mirror, now, dt);
+    } else {
+      this.renderFrame(video, crop, mirror, now, dt, hands, faces);
+    }
     this.trackFps(now);
+  }
+
+  /**
+   * The WYSIWYG couple path: the cam display *is* the strip. Local and remote
+   * sources each get their own strip, side by side (stacked on portrait), with
+   * the live feed in the next unfilled cell and frozen shots behind it.
+   */
+  private renderStripPreviewFrame(
+    video: HTMLVideoElement,
+    hands: HandFrame,
+    faces: FaceFrame,
+    crop: CoverCrop,
+    mirror: boolean,
+    now: number,
+    dt: number,
+  ): void {
+    const ctx = this.ctx!;
+    const canvas = this.canvas!;
+    const style = this.config.stripStyle!;
+    const remote = this.config.remoteVideo;
+
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.fillStyle = '#100F14';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Two panes side-by-side on landscape, stacked on portrait. Each pane is a
+    // complete strip preview for one source; solo (no remote) renders one.
+    const portrait = canvas.height > canvas.width;
+    const paneCount = remote ? 2 : 1;
+    const gap = canvas.width * 0.025;
+    const paneW = portrait ? canvas.width : (canvas.width - gap * (paneCount - 1)) / paneCount;
+    const paneH = portrait ? (canvas.height - gap * (paneCount - 1)) / paneCount : canvas.height;
+
+    const localPane: StripPreviewLayout = layoutStripPreview({
+      canvasWidth: paneW,
+      canvasHeight: paneH,
+      style,
+      slots: SHOT_COUNT,
+      filledCount: this.config.filledCount,
+      padding: 0.02,
+    });
+    this.drawStripPane(ctx, localPane, paneX(portrait, 0, paneW, gap), 0, video, mirror, now);
+
+    if (remote && remote.readyState >= 2 && remote.videoWidth > 0) {
+      const remotePane: StripPreviewLayout = layoutStripPreview({
+        canvasWidth: paneW,
+        canvasHeight: paneH,
+        style,
+        slots: SHOT_COUNT,
+        filledCount: this.config.filledCount,
+        padding: 0.02,
+      });
+      this.drawStripPane(
+        ctx,
+        remotePane,
+        portrait ? 0 : paneX(portrait, 1, paneW, gap),
+        portrait ? paneH + gap : 0,
+        remote,
+        false, // the partner's feed is already the right way round for them
+        now,
+      );
+    } else if (remote) {
+      // Partner pane reserved but not decoding yet — hold its space with a
+      // subtle placeholder so the layout does not jump when they arrive.
+      const x = portrait ? 0 : paneX(portrait, 1, paneW, gap);
+      const y = portrait ? paneH + gap : 0;
+      ctx.fillStyle = 'rgba(251, 247, 242, 0.04)';
+      ctx.fillRect(x + paneW * 0.02, y + paneH * 0.02, paneW * 0.96, paneH * 0.96);
+    }
+
+    this.particles.update(dt);
+    this.particles.draw(ctx, canvas.width, canvas.height);
+
+    const layers = this.resolveLayers(hands, faces, crop, mirror);
+    stickerRenderer.draw(ctx, layers, canvas.width, canvas.height, {
+      showChrome: this.config.showChrome,
+      selectedId: this.config.selectedStickerId,
+      uiScale: canvas.width / this.previewCssWidth,
+      now,
+    });
+  }
+
+  /** One source's strip: background, frozen cells, live cell, footer. */
+  private drawStripPane(
+    ctx: CanvasRenderingContext2D,
+    layout: StripPreviewLayout,
+    originX: number,
+    originY: number,
+    video: HTMLVideoElement,
+    mirror: boolean,
+    now: number,
+  ): void {
+    const renderer = this.renderer!;
+    const time = (now - this.startTime) / 1000;
+
+    ctx.fillStyle = '#1B1A21';
+    ctx.fillRect(originX, originY, layout.width, layout.height);
+
+    for (const cell of layout.cells) {
+      const x = originX + cell.x;
+      const y = originY + cell.y;
+      if (!cell.isLive) {
+        const frozen = this.config.frozenCells[cell.slot];
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(x, y, cell.w, cell.h);
+        ctx.clip();
+        if (frozen) {
+          drawCoverCrop(ctx, frozen, x, y, cell.w, cell.h);
+        } else {
+          ctx.fillStyle = 'rgba(16, 15, 20, 0.35)';
+          ctx.fillRect(x, y, cell.w, cell.h);
+        }
+        ctx.restore();
+        continue;
+      }
+
+      // The live cell runs the exact same filter pass, then lands clipped in
+      // its rect — so the preview and the eventual capture agree.
+      renderer.setFilter(this.config.filter);
+      renderer.setIntensity(this.config.intensity);
+      renderer.setMirror(mirror);
+      renderer.setCenter(0.5, 0.5);
+      renderer.setRadiusScale(1);
+
+      const cellAspect = cell.w / cell.h;
+      const crop = zoomCrop(
+        video.videoWidth / video.videoHeight,
+        cellAspect,
+        this.config.cameraZoom,
+      );
+      const source = this.zoomStage.compose(
+        video,
+        video.videoWidth,
+        video.videoHeight,
+        cell.w,
+        cell.h,
+        this.config.cameraZoom,
+      );
+      const drew = source
+        ? renderer.render(source, time, source.width, source.height)
+        : renderer.render(video, time, video.videoWidth, video.videoHeight);
+      if (drew) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(x, y, cell.w, cell.h);
+        ctx.clip();
+        ctx.drawImage(renderer.canvas, x, y, cell.w, cell.h);
+        ctx.restore();
+      } else {
+        ctx.fillStyle = '#100F14';
+        ctx.fillRect(x, y, cell.w, cell.h);
+      }
+      void crop;
+    }
+
+    // Footer band: the strip chrome, drawn faint — the real footer is baked
+    // by StripRenderer at export; this is just the live hint of it.
+    ctx.fillStyle = 'rgba(251, 247, 242, 0.06)';
+    ctx.fillRect(originX, originY + layout.height - layout.footer, layout.width, layout.footer);
   }
 
   private runTracking(video: HTMLVideoElement, now: number) {
@@ -545,5 +737,49 @@ export class BoothEngine {
     }
     this.captureCanvas = null;
     this.captureCtx = null;
+  }
+}
+
+/** Pane origin for the duo layout; index 0 = local, 1 = partner. */
+function paneX(portrait: boolean, index: number, paneW: number, gap: number): number {
+  if (portrait) return 0;
+  return index * (paneW + gap);
+}
+
+/** `object-fit: cover` into a target rect, for frozen cells. */
+function drawCoverCrop(
+  ctx: CanvasRenderingContext2D,
+  image: CanvasImageSource,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+): void {
+  let sw = 0;
+  let sh = 0;
+  let fullW = 0;
+  let fullH = 0;
+  if (image instanceof HTMLVideoElement) {
+    fullW = sw = image.videoWidth;
+    fullH = sh = image.videoHeight;
+  } else if (image instanceof HTMLImageElement) {
+    fullW = sw = image.naturalWidth;
+    fullH = sh = image.naturalHeight;
+  } else if (image instanceof HTMLCanvasElement) {
+    fullW = sw = image.width;
+    fullH = sh = image.height;
+  } else if (typeof ImageBitmap !== 'undefined' && image instanceof ImageBitmap) {
+    fullW = sw = image.width;
+    fullH = sh = image.height;
+  }
+  if (!sw || !sh) return;
+  const srcAspect = sw / sh;
+  const dstAspect = w / h;
+  if (srcAspect > dstAspect) sw = sh * dstAspect;
+  else sh = sw / dstAspect;
+  try {
+    ctx.drawImage(image, (fullW - sw) / 2, (fullH - sh) / 2, sw, sh, x, y, w, h);
+  } catch {
+    /* not decoded yet; the next frame retries */
   }
 }

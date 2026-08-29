@@ -5,14 +5,20 @@ import { usePhotobooth } from '../../state/photoboothStore';
 import { stickerManager } from '../../lib/stickers/StickerManager';
 import { bringForward, reindex, sendBackward, topZ } from '../../lib/stickers/StickerRenderer';
 import { FILTER_BY_ID } from '../../lib/filters/filterCatalog';
+import { LAYOUT_BY_ID } from '../../lib/export/stripLayouts';
 import { haptic, playChime, playPop, playShutter, playTick } from '../../lib/utils/feedback';
 import { useBoothEngine } from './useBoothEngine';
 import { useStickerInteraction, applyKeyboardTransform } from './useStickerInteraction';
+import { useCoupleCapture } from '../couple/useCoupleCapture';
+import { useCouple } from '../../state/coupleStore';
+import { useGestureHold } from '../couple/GestureHud';
+import { nextStripLayout } from '../../lib/export/stripLayouts';
 import { CameraPreview } from './CameraPreview';
 import { CameraControls } from './CameraControls';
 import { CaptureButton } from './CaptureButton';
 import { FilterCarousel } from './FilterCarousel';
 import { ShotProgress } from './ShotProgress';
+import { BoothStrip } from './BoothStrip';
 import { StickerPanel } from './StickerPanel';
 import { StickerToolbar } from './StickerToolbar';
 import { SettingsSheet } from './SettingsSheet';
@@ -33,6 +39,7 @@ export function PhotoboothScreen({ onExit }: { onExit: () => void }) {
   const liveStickers = usePhotobooth((s) => s.liveStickers);
   const selectedStickerId = usePhotobooth((s) => s.selectedStickerId);
   const settings = usePhotobooth((s) => s.settings);
+  const stripStyle = usePhotobooth((s) => s.stripStyle);
   const cameraError = usePhotobooth((s) => s.camera.error);
   const fps = usePhotobooth((s) => s.fps);
 
@@ -68,8 +75,8 @@ export function PhotoboothScreen({ onExit }: { onExit: () => void }) {
     onChange: setLiveStickers,
     selectedId: selectedStickerId,
     onSelect: selectSticker,
-    onDelete: (id) => {
-      setLiveStickers(reindex(liveStickers.filter((l) => l.id !== id)));
+    onDelete: () => {
+      setLiveStickers(reindex(liveStickers.filter((l) => l.id !== selectedStickerId)));
       haptic(settings.hapticsEnabled, 'tick');
     },
     onManipulate: () => haptic(settings.hapticsEnabled, 'tick'),
@@ -84,10 +91,67 @@ export function PhotoboothScreen({ onExit }: { onExit: () => void }) {
     if (store.status === 'COUNTDOWN') store.transition('READY');
   }, []);
 
+  // Couple mode: both shutters fire on the partner-agreed instant.
+  const coupleActive = useCouple((s) => s.active);
+  const partnerStatus = useCouple((s) => s.partner);
+  const roomCode = useCouple((s) => s.roomCode);
+  const couple = useCoupleCapture(booth.engine);
+
+  // Hold-to-fire gesture commands, visible as a radial HUD near the hand.
+  const coupleHud = useGestureHold(booth.gesture, coupleActive, (g) => {
+    if (g === 'THUMBS_UP') void runCapture();
+    if (g === 'WAVE') abortCountdown();
+    if (g === 'OPEN_PALM') {
+      const next = nextStripLayout(usePhotobooth.getState().stripStyle.layout);
+      usePhotobooth.getState().setStripLayout(next);
+      useCouple.getState().rtc()?.rtc?.broadcastLayout(next);
+    }
+  });
+
   const runCapture = useCallback(async () => {
     const store = usePhotobooth.getState();
     if (capturingRef.current) return;
     if (store.status !== 'READY' || !booth.engine || store.camera.error) return;
+
+    const slot = store.retakeTarget ?? store.activeShot;
+    const countdownMs = store.settings.countdownSeconds * 1000;
+
+    if (coupleActive) {
+      if (!store.transition('COUNTDOWN')) return;
+      capturingRef.current = true;
+      cancelRef.current = false;
+      couple.scheduleShot(slot, countdownMs + 500);
+      try {
+        // Mirrors the solo countdown so both users see the same rhythm.
+        for (let i = store.settings.countdownSeconds; i >= 1; i--) {
+          setCountdown(i);
+          setAnnouncement(String(i));
+          playTick(store.settings.soundEnabled, 620 + (store.settings.countdownSeconds - i) * 90);
+          await wait(1000);
+          if (cancelRef.current) return;
+        }
+        setCountdown(0);
+        setAnnouncement('Snap');
+        playTick(store.settings.soundEnabled, 1180);
+        await wait(500);
+        if (cancelRef.current) return;
+        setCountdown(null);
+        // The shared-fire effect in useCoupleCapture performs the actual
+        // engine.capture() at the agreed moment on both sides.
+        await new Promise<void>((resolve) => {
+          const check = () => {
+            if (useCouple.getState().fireAt === null || cancelRef.current) resolve();
+            else setTimeout(check, 100);
+          };
+          setTimeout(check, 100);
+        });
+      } finally {
+        capturingRef.current = false;
+        setCountdown(null);
+      }
+      return;
+    }
+
     if (!store.transition('COUNTDOWN')) return;
 
     capturingRef.current = true;
@@ -138,9 +202,7 @@ export function PhotoboothScreen({ onExit }: { onExit: () => void }) {
       setFreezeUrl(null);
 
       const complete = usePhotobooth.getState().photos.every(Boolean);
-      setAnnouncement(
-        complete ? 'All four shots are done' : `Shot ${slot + 1} saved`,
-      );
+      setAnnouncement(complete ? 'All four shots are done' : `Shot ${slot + 1} saved`);
 
       if (complete) {
         setCelebrating(true);
@@ -164,7 +226,7 @@ export function PhotoboothScreen({ onExit }: { onExit: () => void }) {
         if (s.status === 'COUNTDOWN') s.transition('READY');
       }
     }
-  }, [booth.engine, pushToast]);
+  }, [booth.engine, pushToast, couple, coupleActive]);
 
   // --- stickers ------------------------------------------------------------
   const addSticker = useCallback(
@@ -258,9 +320,7 @@ export function PhotoboothScreen({ onExit }: { onExit: () => void }) {
       const target = event.target as HTMLElement | null;
       const typing =
         target &&
-        (target.tagName === 'INPUT' ||
-          target.tagName === 'TEXTAREA' ||
-          target.isContentEditable);
+        (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable);
       if (typing) return;
       if (stickersOpen || settingsOpen) return;
 
@@ -335,6 +395,13 @@ export function PhotoboothScreen({ onExit }: { onExit: () => void }) {
   const counting = status === 'COUNTDOWN';
   const busy = status === 'CAPTURED';
   const shotNumber = Math.min((retakeTarget ?? activeShot) + 1, SHOT_COUNT);
+  const activeSlot = retakeTarget ?? activeShot;
+  const cellAspect = LAYOUT_BY_ID[stripStyle.layout].cellAspect;
+
+  const retakeSlot = useCallback((index: number) => {
+    usePhotobooth.getState().beginRetake(index);
+    setAnnouncement(`Retaking shot ${index + 1}`);
+  }, []);
 
   return (
     <div className="booth dark-scope" id="main">
@@ -364,17 +431,27 @@ export function PhotoboothScreen({ onExit }: { onExit: () => void }) {
         onExit={onExit}
         pointerHandlers={sticker.handlers}
         celebrating={celebrating}
+        cellAspect={cellAspect}
+        gestureHud={coupleHud}
+        partnerBadge={
+          coupleActive ? { room: roomCode, status: partnerStatus } : undefined
+        }
+        rail={
+          <BoothStrip
+            photos={photos}
+            style={stripStyle}
+            activeIndex={activeSlot}
+            onSelect={retakeSlot}
+          />
+        }
       />
 
       <div className="booth__bottom">
         <ShotProgress
           photos={photos}
-          activeShot={retakeTarget ?? activeShot}
+          activeShot={activeSlot}
           retakeTarget={retakeTarget}
-          onSelect={(index) => {
-            usePhotobooth.getState().beginRetake(index);
-            setAnnouncement(`Retaking shot ${index + 1}`);
-          }}
+          onSelect={retakeSlot}
         />
 
         {selectedSticker ? (
@@ -462,7 +539,8 @@ export function PhotoboothScreen({ onExit }: { onExit: () => void }) {
           usePhotobooth.getState().beginRetake('all');
           usePhotobooth.getState().transition('READY');
         }}
-        onContinue={() => usePhotobooth.getState().transition('EDITING')}
+        onSave={() => usePhotobooth.getState().transition('EXPORTING')}
+        onCustomize={() => usePhotobooth.getState().transition('EDITING')}
       />
 
       <LiveRegion message={announcement} />

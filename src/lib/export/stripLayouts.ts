@@ -44,6 +44,17 @@ export const STRIP_LAYOUTS: StripLayout[] = [
     cellAspect: 1,
     footerScale: 1.3,
   },
+  {
+    id: 'duo',
+    label: 'Duo',
+    blurb: 'Two of you in every frame.',
+    columns: 1,
+    rows: 4,
+    cellAspect: 4 / 5,
+    footerScale: 3.4,
+    // The couple layout: each cell is a 2-slot pair, my face left, partner right.
+    cellSlots: 2,
+  },
 ];
 
 export const LAYOUT_BY_ID: Record<StripLayoutId, StripLayout> = STRIP_LAYOUTS.reduce(
@@ -53,6 +64,13 @@ export const LAYOUT_BY_ID: Record<StripLayoutId, StripLayout> = STRIP_LAYOUTS.re
   },
   {} as Record<StripLayoutId, StripLayout>,
 );
+
+/** Cycle layouts; the OPEN_PALM gesture walks this order on both screens. */
+export function nextStripLayout(current: StripLayoutId): StripLayoutId {
+  const order: StripLayoutId[] = ['classic', 'grid', 'polaroid', 'minimal'];
+  const i = order.indexOf(current);
+  return order[(i + 1) % order.length] ?? 'classic';
+}
 
 export const STRIP_BACKGROUNDS: { id: string; label: string; color: string; alt: string | null; frame: string; ink: string }[] = [
   { id: 'ink', label: 'Ink', color: '#16151A', alt: null, frame: '#16151A', ink: '#FBF7F2' },

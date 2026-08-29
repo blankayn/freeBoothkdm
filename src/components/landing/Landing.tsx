@@ -3,6 +3,7 @@ import { Button, Sheet } from '../ui/Primitives';
 import { Logo, IconSparkle, IconHand, IconSticker, IconDownload } from '../ui/Icons';
 import { BUILT_IN_STICKERS } from '../../lib/stickers/stickerLibrary';
 import { GESTURE_HINTS } from '../../lib/mediapipe/GestureManager';
+import { RoomJoin } from '../couple/RoomJoin';
 
 const Camera3D = lazy(() => import('./Camera3D').then((m) => ({ default: m.Camera3D })));
 
@@ -15,6 +16,7 @@ const SHOWCASE_STICKERS = ['heart', 'sparkle', 'star5', 'boba'];
 
 export function Landing({ onOpen, cameraSupported }: LandingProps) {
   const [howOpen, setHowOpen] = useState(false);
+  const [showCouple, setShowCouple] = useState(false);
 
   return (
     <main className="landing" id="main">
@@ -60,10 +62,28 @@ export function Landing({ onOpen, cameraSupported }: LandingProps) {
             <Button size="lg" onClick={onOpen} disabled={!cameraSupported}>
               OPEN PHOTOBOOTH
             </Button>
+            <button
+              className="landing__secondary"
+              onClick={() => {
+                setShowCouple(true);
+              }}
+              disabled={!cameraSupported}
+            >
+              Booth with a partner
+            </button>
             <button className="landing__secondary" onClick={() => setHowOpen(true)}>
               How it works
             </button>
           </div>
+
+          {showCouple ? (
+            <RoomJoin
+              onDone={() => {
+                setShowCouple(false);
+                onOpen();
+              }}
+            />
+          ) : null}
 
           {!cameraSupported ? (
             <p className="landing__warning" role="alert">

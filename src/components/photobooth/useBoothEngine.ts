@@ -2,9 +2,15 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { BoothEngine } from '../../lib/booth/BoothEngine';
 import { isCameraError } from '../../lib/camera/CameraManager';
 import { usePhotobooth } from '../../state/photoboothStore';
+import { useCouple } from '../../state/coupleStore';
 import { stickerManager } from '../../lib/stickers/StickerManager';
 import { looksLowPowered } from '../../lib/mediapipe/config';
 import type { GestureId } from '../../lib/mediapipe/GestureManager';
+
+/** Couple mode means the engine renders the WYSIWYG strip panes. */
+function useCoupleActive(): boolean {
+  return useCouple((s) => s.active);
+}
 
 export interface BoothHandle {
   engine: BoothEngine | null;
@@ -91,7 +97,13 @@ export function useBoothEngine(active: boolean): BoothHandle {
   }, []);
 
   // --- push config ---------------------------------------------------------
+  const stripStyle = usePhotobooth((s) => s.stripStyle);
+  const photos = usePhotobooth((s) => s.photos);
+  const coupleActive = useCoupleActive();
+
   useEffect(() => {
+    const filledCount = photos.filter(Boolean).length;
+    const conn = coupleActive ? useCouple.getState().rtc() : null;
     engineRef.current?.setConfig({
       filter,
       intensity,
@@ -102,7 +114,13 @@ export function useBoothEngine(active: boolean): BoothHandle {
       faceTracking: settings.faceTracking,
       showChrome: status === 'READY',
       cameraZoom: settings.cameraZoom,
-    });
+      // WYSIWYG: the cam display renders as the chosen strip; solo keeps the
+      // classic full-bleed preview (stripStyle null) until the user opts in.
+      stripStyle: coupleActive ? stripStyle : null,
+      filledCount,
+      remoteVideo: conn?.remoteVideoElement ?? null,
+      frozenCells: photos.map((p) => (p ? p.url : null)),
+    } as Parameters<BoothEngine['setConfig']>[0]);
   }, [
     filter,
     intensity,
@@ -113,6 +131,9 @@ export function useBoothEngine(active: boolean): BoothHandle {
     settings.faceTracking,
     settings.cameraZoom,
     status,
+    stripStyle,
+    photos,
+    coupleActive,
   ]);
 
   // --- camera lifecycle ----------------------------------------------------

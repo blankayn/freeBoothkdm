@@ -13,6 +13,9 @@ const PhotoboothScreen = lazy(() =>
 const PhotoStripEditor = lazy(() =>
   import('./components/editor/PhotoStripEditor').then((m) => ({ default: m.PhotoStripEditor })),
 );
+const StripChooser = lazy(() =>
+  import('./components/editor/StripChooser').then((m) => ({ default: m.StripChooser })),
+);
 const FinalScreen = lazy(() =>
   import('./components/editor/FinalScreen').then((m) => ({ default: m.FinalScreen })),
 );
@@ -36,6 +39,10 @@ export default function App() {
   const openBooth = useCallback(() => {
     // Audio has to be unlocked inside a real gesture or the shutter is silent.
     unlockAudio();
+    transition('CHOOSING_STRIP');
+  }, [transition]);
+
+  const startShooting = useCallback(() => {
     transition('CAMERA_PERMISSION');
   }, [transition]);
 
@@ -43,6 +50,8 @@ export default function App() {
     reset();
   }, [reset]);
 
+  // The strip survives a reset, so a second run goes straight back to the camera
+  // rather than asking you to pick the same template again.
   const takeAnother = useCallback(() => {
     reset();
     unlockAudio();
@@ -53,7 +62,8 @@ export default function App() {
   const photos = usePhotobooth((s) => s.photos);
   useEffect(() => {
     const hasUnsaved = photos.some(Boolean);
-    const risky = (status === 'REVIEW' || status === 'EDITING' || status === 'CAPTURED') && hasUnsaved;
+    const risky =
+      (status === 'REVIEW' || status === 'EDITING' || status === 'CAPTURED') && hasUnsaved;
     if (!risky) return;
     const onBeforeUnload = (event: BeforeUnloadEvent) => {
       event.preventDefault();
@@ -68,7 +78,10 @@ export default function App() {
     const onVisibilityHidden = () => {
       if (document.visibilityState !== 'hidden') return;
       const { photos: current } = usePhotobooth.getState();
-      if (current.some(Boolean) && (status === 'REVIEW' || status === 'EDITING' || status === 'CAPTURED')) {
+      if (
+        current.some(Boolean) &&
+        (status === 'REVIEW' || status === 'EDITING' || status === 'CAPTURED')
+      ) {
         try {
           sessionStorage.setItem('booth-draft', JSON.stringify({ status, at: Date.now() }));
         } catch {
@@ -88,8 +101,14 @@ export default function App() {
         Skip to the photobooth
       </a>
 
-      {status === 'IDLE' ? (
-        <Landing onOpen={openBooth} cameraSupported={cameraSupported} />
+      {status === 'IDLE' ? <Landing onOpen={openBooth} cameraSupported={cameraSupported} /> : null}
+
+      {status === 'CHOOSING_STRIP' ? (
+        <ErrorBoundary label="Strip chooser" onReset={exitBooth}>
+          <Suspense fallback={<ScreenFallback label="strip options" />}>
+            <StripChooser onStart={startShooting} onBack={exitBooth} />
+          </Suspense>
+        </ErrorBoundary>
       ) : null}
 
       {inBooth ? (
@@ -111,10 +130,7 @@ export default function App() {
       {status === 'EXPORTING' || status === 'COMPLETE' ? (
         <ErrorBoundary label="Export" onReset={() => transition('EDITING')}>
           <Suspense fallback={<ScreenFallback label="strip" />}>
-            <FinalScreen
-              onTakeAnother={takeAnother}
-              onBackToEditor={() => transition('EDITING')}
-            />
+            <FinalScreen onTakeAnother={takeAnother} onBackToEditor={() => transition('EDITING')} />
           </Suspense>
         </ErrorBoundary>
       ) : null}

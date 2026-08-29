@@ -1,5 +1,10 @@
 import type { StripLayoutId, StripSizeId, StripStyle } from '../../types/photobooth';
-import { STRIP_BACKGROUNDS, STRIP_LAYOUTS, STRIP_SIZES, STRIP_THEMES } from '../../lib/export/stripLayouts';
+import {
+  STRIP_BACKGROUNDS,
+  STRIP_LAYOUTS,
+  STRIP_SIZES,
+  STRIP_THEMES,
+} from '../../lib/export/stripLayouts';
 import { Slider, Toggle } from '../ui/Primitives';
 
 interface LayoutControlsProps {
@@ -30,7 +35,13 @@ export function LayoutControls({ layout, onChange }: LayoutControlsProps) {
   );
 }
 
-export function SizeControls({ size, onChange }: { size: StripSizeId; onChange: (id: StripSizeId) => void }) {
+export function SizeControls({
+  size,
+  onChange,
+}: {
+  size: StripSizeId;
+  onChange: (id: StripSizeId) => void;
+}) {
   return (
     <div className="panel">
       <fieldset className="panel__field">
@@ -74,7 +85,12 @@ function LayoutGlyph({ id }: { id: StripLayoutId }) {
           [0, 1],
           [1, 1],
         ]
-      : [[0, 0], [0, 1], [0, 2], [0, 3]];
+      : [
+          [0, 0],
+          [0, 1],
+          [0, 2],
+          [0, 3],
+        ];
   const cols = id === 'grid' ? 2 : 1;
   const rows = id === 'grid' ? 2 : 4;
   const gap = id === 'minimal' ? 1.5 : 3;
@@ -101,6 +117,57 @@ function LayoutGlyph({ id }: { id: StripLayoutId }) {
   );
 }
 
+/**
+ * Theme presets on their own, so the pre-capture chooser and the full editor
+ * offer the same swatches from one definition.
+ */
+export function ThemeControls({
+  style,
+  onChange,
+  hint = 'One tap sets background + accent together. You can fine-tune below.',
+}: {
+  style: StripStyle;
+  onChange: (patch: Partial<StripStyle>) => void;
+  hint?: string;
+}) {
+  return (
+    <fieldset className="panel__field">
+      <legend>Theme</legend>
+      {hint ? <p className="panel__hint">{hint}</p> : null}
+      <div className="swatches">
+        {STRIP_THEMES.map((theme) => {
+          const selected = style.background === theme.background && style.accent === theme.accent;
+          return (
+            <button
+              key={theme.id}
+              type="button"
+              aria-label={theme.label}
+              aria-pressed={selected}
+              title={theme.label}
+              className={`swatch swatch--theme ${selected ? 'is-selected' : ''}`}
+              style={{
+                background: theme.backgroundAlt
+                  ? `linear-gradient(160deg, ${theme.background}, ${theme.backgroundAlt})`
+                  : theme.background,
+              }}
+              onClick={() =>
+                onChange({
+                  background: theme.background,
+                  backgroundAlt: theme.backgroundAlt,
+                  accent: theme.accent,
+                  frameColor: theme.frameColor,
+                })
+              }
+            >
+              <span className="swatch__dot" style={{ background: theme.accent }} aria-hidden />
+            </button>
+          );
+        })}
+      </div>
+    </fieldset>
+  );
+}
+
 interface StyleControlsProps {
   style: StripStyle;
   onChange: (patch: Partial<StripStyle>) => void;
@@ -109,46 +176,14 @@ interface StyleControlsProps {
 export function StyleControls({ style, onChange }: StyleControlsProps) {
   return (
     <div className="panel">
-      <fieldset className="panel__field">
-        <legend>Theme</legend>
-        <p className="panel__hint">One tap sets background + accent together. You can fine-tune below.</p>
-        <div className="swatches">
-          {STRIP_THEMES.map((theme) => {
-            const selected = style.background === theme.background && style.accent === theme.accent;
-            return (
-              <button
-                key={theme.id}
-                type="button"
-                aria-label={theme.label}
-                aria-pressed={selected}
-                title={theme.label}
-                className={`swatch swatch--theme ${selected ? 'is-selected' : ''}`}
-                style={{
-                  background: theme.backgroundAlt
-                    ? `linear-gradient(160deg, ${theme.background}, ${theme.backgroundAlt})`
-                    : theme.background,
-                }}
-                onClick={() =>
-                  onChange({
-                    background: theme.background,
-                    backgroundAlt: theme.backgroundAlt,
-                    accent: theme.accent,
-                    frameColor: theme.frameColor,
-                  })
-                }
-              >
-                <span className="swatch__dot" style={{ background: theme.accent }} aria-hidden />
-              </button>
-            );
-          })}
-        </div>
-      </fieldset>
+      <ThemeControls style={style} onChange={onChange} />
 
       <fieldset className="panel__field">
         <legend>Background</legend>
         <div className="swatches">
           {STRIP_BACKGROUNDS.map((option) => {
-            const selected = style.background === option.color && style.backgroundAlt === option.alt;
+            const selected =
+              style.background === option.color && style.backgroundAlt === option.alt;
             return (
               <button
                 key={option.id}
@@ -179,7 +214,13 @@ export function StyleControls({ style, onChange }: StyleControlsProps) {
             <input
               type="color"
               value={style.background}
-              onChange={(e) => onChange({ background: e.target.value, backgroundAlt: null, frameColor: e.target.value })}
+              onChange={(e) =>
+                onChange({
+                  background: e.target.value,
+                  backgroundAlt: null,
+                  frameColor: e.target.value,
+                })
+              }
               aria-label="Custom background color"
             />
           </label>
@@ -193,7 +234,11 @@ export function StyleControls({ style, onChange }: StyleControlsProps) {
                 aria-label="Gradient end color"
               />
               {style.backgroundAlt ? (
-                <button type="button" className="btn btn--ghost btn--sm" onClick={() => onChange({ backgroundAlt: null })}>
+                <button
+                  type="button"
+                  className="btn btn--ghost btn--sm"
+                  onClick={() => onChange({ backgroundAlt: null })}
+                >
                   Clear
                 </button>
               ) : null}
@@ -205,21 +250,38 @@ export function StyleControls({ style, onChange }: StyleControlsProps) {
       <fieldset className="panel__field">
         <legend>Accent</legend>
         <div className="swatches">
-          {['#FF3B6B', '#8B5CF6', '#5AD2FF', '#C8FF4D', '#FFD166', '#16151A', '#FFFFFF', '#FF8A00'].map((color) => (
+          {[
+            '#FF3B6B',
+            '#8B5CF6',
+            '#5AD2FF',
+            '#C8FF4D',
+            '#FFD166',
+            '#16151A',
+            '#FFFFFF',
+            '#FF8A00',
+          ].map((color) => (
             <button
               key={color}
               type="button"
               aria-label={`Accent ${color}`}
               aria-pressed={style.accent === color}
               className={`swatch swatch--sm ${style.accent === color ? 'is-selected' : ''}`}
-              style={{ background: color, border: color === '#FFFFFF' ? '1px solid #E5E7EB' : undefined }}
+              style={{
+                background: color,
+                border: color === '#FFFFFF' ? '1px solid #E5E7EB' : undefined,
+              }}
               onClick={() => onChange({ accent: color })}
             />
           ))}
         </div>
         <label className="color-input color-input--full">
           <span>Custom accent</span>
-          <input type="color" value={style.accent} onChange={(e) => onChange({ accent: e.target.value })} aria-label="Custom accent color" />
+          <input
+            type="color"
+            value={style.accent}
+            onChange={(e) => onChange({ accent: e.target.value })}
+            aria-label="Custom accent color"
+          />
         </label>
       </fieldset>
 
@@ -261,7 +323,9 @@ export function StyleControls({ style, onChange }: StyleControlsProps) {
           min={0}
           max={0.02}
           step={0.001}
-          display={style.borderWidth === 0 ? 'None' : `${Math.round(style.borderWidth * 1000) / 10}`}
+          display={
+            style.borderWidth === 0 ? 'None' : `${Math.round(style.borderWidth * 1000) / 10}`
+          }
           onChange={(v) => onChange({ borderWidth: v })}
         />
       </div>
