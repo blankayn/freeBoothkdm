@@ -18,6 +18,18 @@ export function RoomJoin({ onDone }: { onDone: () => void }) {
     .replace(/[^A-Z2-9]/g, '')
     .slice(0, 5);
 
+  const [hostRoom, setHostRoom] = useState<string | null>(null);
+  // Create the room once when the host screen first appears.
+  if (mode === 'host' && hostRoom === null) {
+    // Defer to next tick to avoid setState-during-render warnings.
+    queueMicrotask(() => setHostRoom(host()));
+    return (
+      <div className="room-join" role="dialog" aria-label="Room code">
+        <p className="room-join__title">Creating room…</p>
+      </div>
+    );
+  }
+
   if (mode === 'choose') {
     return (
       <div className="room-join" role="dialog" aria-label="Start a couple booth">
@@ -33,12 +45,11 @@ export function RoomJoin({ onDone }: { onDone: () => void }) {
   }
 
   if (mode === 'host') {
-    const room = host();
     return (
       <div className="room-join" role="dialog" aria-label="Room code">
         <p className="room-join__title">Share this code</p>
-        <p className="room-join__code" aria-label={`Room code ${room}`}>
-          {room}
+        <p className="room-join__code" aria-label={`Room code ${hostRoom}`}>
+          {hostRoom}
         </p>
         <p className="room-join__hint">
           {partner === 'live'
