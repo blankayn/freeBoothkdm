@@ -23,10 +23,9 @@ export interface CoupleConnectionState {
 export type CoupleAction =
   { type: 'host'; room: string } | { type: 'join'; room: string } | { type: 'leave' };
 
+/** WebRTC ICE servers. TURN is required for ~1-in-6 connections. */
 export const ICE_SERVERS: RTCIceServer[] = [
   { urls: 'stun:stun.l.google.com:19302' },
-  // TURN is what saves the ~1-in-6 connections that STUN cannot punch. Shipping
-  // without one means some couples simply never connect — set these env vars.
   ...(import.meta.env.VITE_TURN_URL
     ? [
         {
@@ -38,11 +37,7 @@ export const ICE_SERVERS: RTCIceServer[] = [
     : []),
 ];
 
-export function defaultSignalingUrl(): string {
-  // Vite dev runs on 5173; the signaling server defaults to 8787. In prod the
-  // host should put them behind one origin (or set VITE_SIGNALING_URL).
-  const envUrl = import.meta.env.VITE_SIGNALING_URL as string | undefined;
-  if (envUrl) return envUrl;
-  if (import.meta.env.DEV) return `ws://${location.hostname}:8787`;
-  return `wss://${location.host}/ws`;
+/** Supabase project URL. Set VITE_SUPABASE_URL in .env.local. */
+export function supabaseUrl(): string | undefined {
+  return import.meta.env.VITE_SUPABASE_URL as string | undefined;
 }

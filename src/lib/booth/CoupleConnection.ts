@@ -1,7 +1,7 @@
 import type { ClockSample, PartnerStatus, SignalingEvent, SignalMessage } from '../../types/booth';
 import { SignalingClient, makeRoomCode } from './SignalingClient';
 import { BoothSession } from './BoothSession';
-import { ICE_SERVERS, defaultSignalingUrl } from './coupleConfig';
+import { ICE_SERVERS, supabaseUrl } from './coupleConfig';
 
 export interface ConnectionCallbacks {
   onStateChange?: (state: ConnectionState) => void;
@@ -77,7 +77,7 @@ export class CoupleConnection {
       onEvent: (e) => this.onSignalingEvent(e, room),
       onMessage: (msg) => void this.session?.handleSignaling(msg),
     });
-    this.signaling.connect(defaultSignalingUrl(), room);
+    this.signaling.connect(supabaseUrl() ?? '', room);
   }
 
   private onSignalingEvent(e: SignalingEvent, room: string): void {
@@ -85,27 +85,32 @@ export class CoupleConnection {
       case 'joined': {
         const polite = e.polite ?? true;
         this.patch({ polite });
-        this.session = new BoothSession({
-          polite,
-          signalingSend: (msg: SignalMessage) => this.signaling.send(msg),
-          iceServers: ICE_SERVERS,
-        });
-        this.session.setCallbacks({
-          onRemoteStream: (stream) => this.attachRemote(stream),
-          onPartnerGone: () => {
-            this.patch({ partner: 'gone' });
-            this.callbacks.onStateChange?.(this.state);
-          },
-          onClock: (sample) => {
-            this.patch({ offset: sample.offset, rtt: sample.rtt });
-            this.callbacks.onClock?.(sample);
-          },
-          onSharedFire: (at, slot) => this.callbacks.onSharedFire?.(at, slot),
-          onCancelFire: () => this.callbacks.onCancelFire?.(),
-          onRemoteShot: (slot, blob) => this.callbacks.onRemoteShot?.(slot, blob),
-          onGesture: (g, held) => this.callbacks.onPartnerGesture?.(g, held),
-        });
-        if (polite) this.session.wireIncomingChannels();
+        if (!this.session) {
+          this.session = new BoothSession({
+            polite,
+            signalingSend: (msg: SignalMessage) => {
+              void this.signaling.send(msg);
+              return true;
+            },
+            iceServers: ICE_SERVERS,
+          });
+          this.session.setCallbacks({
+            onRemoteStream: (stream) => this.attachRemote(stream),
+            onPartnerGone: () => {
+              this.patch({ partner: 'gone' });
+              this.callbacks.onStateChange?.(this.state);
+            },
+            onClock: (sample) => {
+              this.patch({ offset: sample.offset, rtt: sample.rtt });
+              this.callbacks.onClock?.(sample);
+            },
+            onSharedFire: (at, slot) => this.callbacks.onSharedFire?.(at, slot),
+            onCancelFire: () => this.callbacks.onCancelFire?.(),
+            onRemoteShot: (slot, blob) => this.callbacks.onRemoteShot?.(slot, blob),
+            onGesture: (g, held) => this.callbacks.onPartnerGesture?.(g, held),
+          });
+          if (polite) this.session.wireIncomingChannels();
+        }
         break;
       }
       case 'peer-joined': {
